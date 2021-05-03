@@ -18,9 +18,6 @@
     <ClCompile Include="SalesManagerSystem.cpp">
       <Filter>源文件</Filter>
     </ClCompile>
-    <ClCompile Include="shell.c">
-      <Filter>源文件</Filter>
-    </ClCompile>
     <ClCompile Include="sqlite3.c">
       <Filter>源文件</Filter>
     </ClCompile>
@@ -33,15 +30,18 @@
     <ClCompile Include="main.cpp">
       <Filter>源文件</Filter>
     </ClCompile>
+    <ClCompile Include="LoginModule.cpp">
+      <Filter>源文件</Filter>
+    </ClCompile>
+    <ClCompile Include="SaleGoodsModule.cpp">
+      <Filter>源文件</Filter>
+    </ClCompile>
+    <ClCompile Include="Utils.cpp">
+      <Filter>源文件</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
-    <ClInclude Include="sqlite_orm.h">
-      <Filter>头文件</Filter>
-    </ClInclude>
     <ClInclude Include="sqlite3.h">
-      <Filter>头文件</Filter>
-    </ClInclude>
-    <ClInclude Include="sqlite3ext.h">
       <Filter>头文件</Filter>
     </ClInclude>
     <ClInclude Include="GoodsManageModule.h">
@@ -53,7 +53,16 @@
     <ClInclude Include="CommandModule.h">
       <Filter>头文件</Filter>
     </ClInclude>
-    <ClInclude Include="UserManagerModule.h">
+    <ClInclude Include="UserManageModule.h">
+      <Filter>头文件</Filter>
+    </ClInclude>
+    <ClInclude Include="Utils.h">
+      <Filter>头文件</Filter>
+    </ClInclude>
+    <ClInclude Include="LoginModule.h">
+      <Filter>头文件</Filter>
+    </ClInclude>
+    <ClInclude Include="SaleGoodsModule.h">
       <Filter>头文件</Filter>
     </ClInclude>
   </ItemGroup>

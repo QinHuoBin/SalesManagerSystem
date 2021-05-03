@@ -1,4 +1,4 @@
-<?xml version="1.0" encoding="utf-8"?>
+﻿<?xml version="1.0" encoding="utf-8"?>
 <Project DefaultTargets="Build" xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
   <ItemGroup Label="ProjectConfigurations">
     <ProjectConfiguration Include="Debug|Win32">
@@ -86,7 +86,7 @@
     <ClCompile>
       <WarningLevel>Level3</WarningLevel>
       <SDLCheck>true</SDLCheck>
-      <PreprocessorDefinitions>WIN32;_DEBUG;_CONSOLE;%(PreprocessorDefinitions)</PreprocessorDefinitions>
+      <PreprocessorDefinitions>WIN32;_DEBUG;_CONSOLE;%(PreprocessorDefinitions); _CRT_SECURE_NO_WARNINGS</PreprocessorDefinitions>
       <ConformanceMode>true</ConformanceMode>
       <MultiProcessorCompilation>true</MultiProcessorCompilation>
     </ClCompile>
@@ -141,20 +141,23 @@
   </ItemDefinitionGroup>
   <ItemGroup>
     <ClCompile Include="GoodsManageModule.cpp" />
+    <ClCompile Include="LoginModule.cpp" />
     <ClCompile Include="main.cpp" />
+    <ClCompile Include="SaleGoodsModule.cpp" />
     <ClCompile Include="SalesManagerSystem.cpp" />
-    <ClCompile Include="shell.c" />
     <ClCompile Include="sqlite3.c" />
     <ClCompile Include="UserManageModule.cpp" />
+    <ClCompile Include="Utils.cpp" />
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="CommandModule.h" />
     <ClInclude Include="GoodsManageModule.h" />
+    <ClInclude Include="LoginModule.h" />
+    <ClInclude Include="SaleGoodsModule.h" />
     <ClInclude Include="SalesManagerSystem.h" />
     <ClInclude Include="sqlite3.h" />
-    <ClInclude Include="sqlite3ext.h" />
-    <ClInclude Include="sqlite_orm.h" />
-    <ClInclude Include="UserManagerModule.h" />
+    <ClInclude Include="UserManageModule.h" />
+    <ClInclude Include="Utils.h" />
   </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
   <ImportGroup Label="ExtensionTargets">
