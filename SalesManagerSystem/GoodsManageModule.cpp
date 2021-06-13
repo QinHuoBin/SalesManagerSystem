@@ -106,7 +106,7 @@ void GoodsManageModule::modify_goods()
 	int new_quantity = the_goods.quantity;
 	if (!keep_quantity) {
 		printf("新数量：");
-		keep_quantity = get_num();
+		new_quantity = get_num();
 		if (new_quantity < 0) {
 			printf("上架数量不得低于0！\n");
 			return;
@@ -203,7 +203,7 @@ int GoodsManageModule::db_modify_goods(string old_goods_name, string new_goods_n
 	sqlite3_prepare_v2(db, sql.c_str(), sql.length(), &stmt, nullptr);
 
 	sqlite3_bind_text(stmt, 1, new_goods_name.c_str(), new_goods_name.length(), SQLITE_STATIC);
-	sqlite3_bind_double(stmt, 2,new_price);
+	sqlite3_bind_double(stmt, 2, new_price);
 	sqlite3_bind_int(stmt, 3, new_quantity);
 	sqlite3_bind_text(stmt, 4, old_goods_name.c_str(), old_goods_name.length(), SQLITE_STATIC);
 
@@ -219,7 +219,7 @@ int GoodsManageModule::db_modify_goods(string old_goods_name, string new_goods_n
 	}
 }
 
-int GoodsManageModule::db_list_goods(vector<Goods> &goods_list)
+int GoodsManageModule::db_list_goods(vector<Goods>& goods_list)
 {
 	string sql = "SELECT id,goods_name,price,quantity FROM Goods;";
 
@@ -291,7 +291,7 @@ int GoodsManageModule::db_find_goods(string goods_name, Goods* goods)
 int GoodsManageModule::enter_module()
 {
 	while (1) {
-		printf("请选择功能\n");
+		printf("这是商品管理模块，请选择功能\n");
 		printf("%d. 添加商品（特权）\n", ADD_GOODS);
 		printf("%d. 删除商品（特权）\n", REMOVE_GOODS);
 		printf("%d. 列出商品（特权）\n", LIST_GOODS);
@@ -299,6 +299,8 @@ int GoodsManageModule::enter_module()
 		printf("%d. 退出本模块\n", GMM_EXIT);
 
 		int cmd = get_num();
+		printf("\n");
+
 		switch (cmd) {
 		case ADD_GOODS:add_goods(); break;
 		case REMOVE_GOODS:remove_goods(); break;
@@ -309,6 +311,7 @@ int GoodsManageModule::enter_module()
 			printf("命令输入错误，请重试！\n");
 			continue;
 		}
+		printf("\n");
 	}
 	return 0;
 }

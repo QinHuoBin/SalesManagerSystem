@@ -21,7 +21,7 @@ inline void open_database(string filename, sqlite3** db) {
         exit(-1);
     }
     else {
-        fprintf(stderr, "Opened database successfully\n");
+        //fprintf(stderr, "Opened database successfully\n");
     }
 }
 
@@ -55,7 +55,7 @@ inline bool ask_yes_or_no(string question,bool default_yes=true)
         else if (ch == '\n')
             return default_yes == true;
         else
-            continue;
+            clear_stdin();
     }
     
 }
@@ -144,16 +144,15 @@ inline void print_goods_row(Goods& goods)
 extern map<int, Goods> GLOBAL_goods_map;
 extern map<int, User> GLOBAL_user_map;
 
-// 用id表示而不用User、Goods来表示的原因：
-//      User和Goods的name都可变，里面可靠的标识符只有id了
+// 订单结构体
 struct Order {
-    // 非必须
     int id = -1;
     time_t time;
 
-    // 必须
     int salesperson_id;
+    string salesperson_name;
     int goods_id;
+    string goods_name;
     float price;
     int num;
 };

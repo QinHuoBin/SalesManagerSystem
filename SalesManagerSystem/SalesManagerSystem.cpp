@@ -1,4 +1,7 @@
-﻿// SalesManagerSystem.cpp : 此文件包含 "main" 函数。程序执行将在此处开始并结束。
+﻿/*
+* 销售管理系统
+* 作者：自动化类2012覃活彬，学号20205299
+*/
 
 using namespace std;
 
@@ -10,32 +13,262 @@ using namespace std;
 #include"UserManageModule.h"
 #include"Utils.h"
 
-
-
-// 运行程序: Ctrl + F5 或调试 >“开始执行(不调试)”菜单
-// 调试程序: F5 或调试 >“开始调试”菜单
-
-// 入门使用技巧: 
-//   1. 使用解决方案资源管理器窗口添加/管理文件
-//   2. 使用团队资源管理器窗口连接到源代码管理
-//   3. 使用输出窗口查看生成输出和其他消息
-//   4. 使用错误列表窗口查看错误
-//   5. 转到“项目”>“添加新项”以创建新的代码文件，或转到“项目”>“添加现有项”以将现有代码文件添加到项目
-//   6. 将来，若要再次打开此项目，请转到“文件”>“打开”>“项目”并选择 .sln 文件
-
 SalesManagerSystem::SalesManagerSystem()
 {
 	prepare_database();
 	open_database(DEFAULT_DATABASE_NAME, &db);
-
-	//modules.insert(pair<int, CommandModule*>(USER_MANAGE_MODULE, (CommandModule*))));
-	//modules.insert(pair<int, CommandModule*>(USER_MANAGE_MODULE, (CommandModule*)new UserManageModule(db)));
-	//modules.insert(pair<int, CommandModule*>(GOODS_MANAGE_MODULE, (CommandModule*)new GoodsManageModule(db)));
 }
 
 
+
+
+#define LOGIN_MODULE 0
+#define SALE_GOODS_MODULE 1
+#define USER_MANAGE_MODULE 2
+#define GOODS_MANAGE_MODULE 3
+void SalesManagerSystem::start()
+{
+	test();
+
+	// 外层循环：初始化系统
+	while (1) {
+		LoginInfo login_info = require_login();
+		int exit_flag = false;
+
+		CommandModule* sale_goods = new SaleGoodsModule(&login_info, db, &GLOBAL_user_map, &GLOBAL_goods_map);
+		CommandModule* user_manage = new UserManageModule(&login_info, db);
+		CommandModule* goods_manage = new GoodsManageModule(&login_info, db);
+
+		modules.insert(pair<int, CommandModule* >(SALE_GOODS_MODULE, sale_goods));
+		modules.insert(pair<int, CommandModule* >(USER_MANAGE_MODULE, user_manage));
+		modules.insert(pair<int, CommandModule* >(GOODS_MANAGE_MODULE, goods_manage));
+
+
+
+		int exit_cmd = modules.size() + 1;
+
+		// 内层循环：模块选择
+		while (1) {
+			// 加载所有商品
+			refresh_global_map((UserManageModule*)user_manage, (GoodsManageModule*)goods_manage);
+
+			printf("请选择模块\n");
+			printf("%d.销售商品模块\n", SALE_GOODS_MODULE);
+			printf("%d.用户管理模块\n", USER_MANAGE_MODULE);
+			printf("%d.商品管理模块\n", GOODS_MANAGE_MODULE);
+			printf("%d.登出\n", exit_cmd);
+			int cmd = get_num();
+
+			auto result = modules.find(cmd);
+			if (cmd == exit_cmd) {
+				break;
+
+			}
+			if (result == modules.end()) {
+				printf("找不到对应模块！\n");
+			}
+			else {
+				printf("\n");
+				int exec_return = result->second->enter_module();
+				//if (exec_return == -2)
+				//	break;
+			}
+			printf("\n");
+		}
+		printf("正在登出...\n");
+		// 释放模块对象
+		for (auto& pair : modules) {
+			delete (pair.second);
+		}
+		modules.clear();
+		printf("\n");
+
+	}
+}
+
+
+void SalesManagerSystem::exit_sys()
+{
+	sqlite3_close(db);
+	exit(0);
+}
+
+
+
+#define CMD_SYS_LOGIN 1
+#define CMD_SYS_EXIT 2
+LoginInfo SalesManagerSystem::require_login()
+{
+
+	while (1) {
+		printf("欢迎使用销售管理系统，请选择操作：\n");
+		printf("1. 登录\n");
+		printf("2. 退出\n");
+
+		LoginModule login = (db);
+
+		int cmd = get_num();
+		if (cmd == CMD_SYS_LOGIN)
+		{
+			bool flag_for_login_success = false;
+			LoginInfo info;
+			while (1) {
+				info = login.enter_module();
+				if (info.auth_state != AuthenticationState::LOGIN_SUCCESS) {
+					bool retry = ask_yes_or_no("登录失败，是否重试？");
+					if (retry) {
+						continue;
+					}
+					else {
+						break;
+					}
+				}
+				else {
+					flag_for_login_success = true;
+					printf("\n");
+					break;
+				}
+			}
+			if (flag_for_login_success)
+				return info;
+		}
+		else if (cmd == CMD_SYS_EXIT) {
+			printf("正在退出系统...\n");
+			exit_sys();
+			return *(new LoginInfo);
+		}
+		else {
+			printf("找不到命令，请重新输入.\n");
+			continue;
+		}
+		printf("\n");
+	}
+
+}
+
+// 准备数据库，包括其中的表
+void SalesManagerSystem::prepare_database()
+{
+	// 判断文件是否存在，若存在，则退出
+	FILE* file = fopen(DEFAULT_DATABASE_NAME, "r");
+	if (file != NULL) {
+		fclose(file);
+		return;
+	}
+	else {
+		printf("正在准备数据库\n");
+	}
+
+	sqlite3* db = NULL;
+	int rc;
+	char* zErrMsg = 0;
+	open_database(DEFAULT_DATABASE_NAME, &db);
+
+	// 为UserManageModule创建表
+	/*
+		struct User {
+		int id;
+		int user_type;
+		string username;
+		string password;// 应该加密
+	};
+	*/
+	string sql = "CREATE TABLE User ("\
+		"id INTEGER PRIMARY KEY AUTOINCREMENT,"\
+		"user_type INTEGER NOT NULL,"\
+		"username CHAR(50) NOT NULL UNIQUE,"\
+		"password CHAR(50) NOT NULL);";
+
+	rc = sqlite3_exec(db, sql.c_str(), NULL, 0, &zErrMsg);
+	if (rc != SQLITE_OK) {
+		fprintf(stderr, "SQL error: %s\n", zErrMsg);
+		sqlite3_free(zErrMsg);
+	}
+	else {
+		fprintf(stdout, "Table created successfully\n");
+	}
+
+	//struct Goods {
+	//	int id;
+	//	string goods_name;
+	//	float price;
+	//	int quantity;
+	//};
+	sql = "CREATE TABLE Goods ("\
+		"id INTEGER PRIMARY KEY AUTOINCREMENT,"\
+		"goods_name CHAR(50) NOT NULL UNIQUE,"\
+		"price REAL NOT NULL,"\
+		"quantity INTEGER NOT NULL);";
+	rc = sqlite3_exec(db, sql.c_str(), NULL, 0, &zErrMsg);
+
+	sql = "CREATE TABLE Goods_order ("\
+		"id INTEGER PRIMARY KEY AUTOINCREMENT,"\
+		"time INTEGER NOT NULL,"\
+		"goods_id INTEGER NOT NULL,"\
+		"goods_name CHAR(50) NOT NULL,"\
+		"salesperson_id INTEGER NOT NULL,"\
+		"salesperson_name CHAR(50) NOT NULL,"\
+		"price REAL NOT NULL,"\
+		"quantity INTEGER NOT NULL);";
+	rc = sqlite3_exec(db, sql.c_str(), NULL, 0, &zErrMsg);
+	if (rc != SQLITE_OK) {
+		fprintf(stderr, "SQL error: %s\n", zErrMsg);
+		sqlite3_free(zErrMsg);
+	}
+	else {
+		fprintf(stdout, "Table created successfully\n");
+	}
+
+	// 添加测试账户
+	/*
+	enum UserType {
+		Salesperson=0, Admin=1
+	};
+	*/
+	sql = "INSERT INTO User (id,user_type,username,password) "\
+		"VALUES (NULL,1,'admin','admin');";
+	rc = sqlite3_exec(db, sql.c_str(), NULL, 0, &zErrMsg);
+	if (rc != SQLITE_OK) {
+		fprintf(stderr, "SQL error: %s\n", zErrMsg);
+		sqlite3_free(zErrMsg);
+	}
+	else {
+		fprintf(stdout, "Test user create successfully\n");
+	}
+
+	// 添加测试商品
+	sql = "INSERT INTO Goods (id,goods_name,price,quantity) "\
+		"VALUES (NULL,'banana',1.0,200);";
+	rc = sqlite3_exec(db, sql.c_str(), NULL, 0, &zErrMsg);
+
+	// 添加测试订单
+	sql = "INSERT INTO Goods_order (id,time,salesperson_id,goods_id,price,quantity) "\
+		"VALUES (NULL,1620005391,1,1,1.0,100);";
+	rc = sqlite3_exec(db, sql.c_str(), NULL, 0, &zErrMsg);
+
+	sqlite3_close(db);
+}
+
+void SalesManagerSystem::refresh_global_map(void* user_manage, void* goods_manage)
+{
+	GLOBAL_goods_map.clear();
+	vector<Goods> goods_list;
+	((GoodsManageModule*)goods_manage)->db_list_goods(goods_list);
+	for (Goods& goods : goods_list) {
+		GLOBAL_goods_map.insert(pair<int, Goods>(goods.id, goods));
+	}
+
+	GLOBAL_user_map.clear();
+	vector<User> user_list;
+	((UserManageModule*)user_manage)->db_list_user(user_list);
+	for (User& user : user_list) {
+		GLOBAL_user_map.insert(pair<int, User>(user.id, user));
+	}
+
+}
+
 void SalesManagerSystem::test() {
-	printf("进行单元测试\n");
+	//printf("进行单元测试\n");
 	// 测试登录
 	login_info = LoginModule(db).authenticate("admin", "admin");
 	if (login_info.auth_state != AuthenticationState::LOGIN_SUCCESS) {
@@ -102,8 +335,9 @@ void SalesManagerSystem::test() {
 
 	delete goods_manage;
 
-	SaleGoodsModule* sale_goods = new SaleGoodsModule(&login_info, db,&GLOBAL_user_map, &GLOBAL_goods_map);
-	result=sale_goods->db_record_order(114514, 1,1, 3, 3);
+	SaleGoodsModule* sale_goods = new SaleGoodsModule(&login_info, db, &GLOBAL_user_map, &GLOBAL_goods_map);
+	result = sale_goods->db_record_order(114514, 1, "banana", 1, "admin", 3, 3);
+
 	if (!result) {
 		printf("添加销售记录失败！");
 	}
@@ -115,248 +349,10 @@ void SalesManagerSystem::test() {
 
 	vector<Order> all_orders;
 	result = sale_goods->db_enquire_all_orders(all_orders);
-	if (!result||all_orders.size()<1) {
+	if (!result || all_orders.size() < 1) {
 		printf("减少商品数量失败！");
 	}
 	delete sale_goods;
 
-	printf("测试全部通过\n");
-}
-
-#define LOGIN_MODULE 0
-#define SALE_GOODS_MODULE 1
-#define USER_MANAGE_MODULE 2
-#define GOODS_MANAGE_MODULE 3
-void SalesManagerSystem::start()
-{
-	test();
-
-	// 外层循环：初始化系统
-	while (1) {
-		LoginInfo login_info = require_login();
-		int exit_flag = false;
-
-		CommandModule* sale_goods = new SaleGoodsModule(&login_info,db,&GLOBAL_user_map,&GLOBAL_goods_map);
-		CommandModule* user_manage = new UserManageModule(&login_info, db);
-		CommandModule* goods_manage = new GoodsManageModule(&login_info, db);
-
-		modules.insert(pair<int, CommandModule* >(SALE_GOODS_MODULE, sale_goods));
-		modules.insert(pair<int, CommandModule* >(USER_MANAGE_MODULE, user_manage));
-		modules.insert(pair<int, CommandModule* >(GOODS_MANAGE_MODULE, goods_manage));
-
-
-
-		int exit_cmd = modules.size() + 1;
-
-		// 内层循环：模块选择
-		while (1) {
-			// 加载所有商品，为
-			refresh_global_map((UserManageModule*)user_manage, (GoodsManageModule*)goods_manage);
-
-			printf("选择功能\n");
-			printf("%d.销售商品模块\n", SALE_GOODS_MODULE);
-			printf("%d.用户管理模块\n", USER_MANAGE_MODULE);
-			printf("%d.商品管理模块\n", GOODS_MANAGE_MODULE);
-			printf("%d.登出\n", exit_cmd);
-			int cmd = get_num();
-
-			auto result = modules.find(cmd);
-			if (cmd == exit_cmd) {
-				break;
-
-			}
-			if (result == modules.end()) {
-				printf("找不到对应模块！\n");
-				continue;
-			}
-			else {
-				int exec_return = result->second->enter_module();
-				//if (exec_return == -2)
-				//	break;
-				continue;
-			}
-		}
-		printf("正在登出...\n");
-		// 释放模块对象
-		for (auto& pair : modules) {
-			delete (pair.second);
-		}
-		break;
-
-	}
-}
-
-
-void SalesManagerSystem::exit_sys()
-{
-	sqlite3_close(db);
-	exit(0);
-}
-
-// 准备数据库，包括其中的表
-void SalesManagerSystem::prepare_database()
-{
-	// 判断文件是否存在，若存在，则退出
-	FILE* file = fopen(DEFAULT_DATABASE_NAME, "r");
-	if (file != NULL) {
-		fclose(file);
-		return;
-	}
-	else {
-		printf("正在准备数据库\n");
-	}
-
-	sqlite3* db = NULL;
-	int rc;
-	char* zErrMsg = 0;
-	open_database(DEFAULT_DATABASE_NAME, &db);
-
-	// 为UserManageModule创建表
-	/*
-		struct User {
-		int id;
-		int user_type;
-		string username;
-		string password;// 应该加密
-	};
-	*/
-	string sql = "CREATE TABLE User ("\
-		"id INTEGER PRIMARY KEY AUTOINCREMENT,"\
-		"user_type INTEGER NOT NULL,"\
-		"username CHAR(50) NOT NULL UNIQUE,"\
-		"password CHAR(50) NOT NULL);";
-
-	rc = sqlite3_exec(db, sql.c_str(), NULL, 0, &zErrMsg);
-	if (rc != SQLITE_OK) {
-		fprintf(stderr, "SQL error: %s\n", zErrMsg);
-		sqlite3_free(zErrMsg);
-	}
-	else {
-		fprintf(stdout, "Table created successfully\n");
-	}
-
-	//struct Goods {
-	//	int id;
-	//	string goods_name;
-	//	float price;
-	//	int quantity;
-	//};
-	sql = "CREATE TABLE Goods ("\
-		"id INTEGER PRIMARY KEY AUTOINCREMENT,"\
-		"goods_name CHAR(50) NOT NULL UNIQUE,"\
-		"price REAL NOT NULL,"\
-		"quantity INTEGER NOT NULL);";
-	rc = sqlite3_exec(db, sql.c_str(), NULL, 0, &zErrMsg);
-
-	sql = "CREATE TABLE Goods_order ("\
-		"id INTEGER PRIMARY KEY AUTOINCREMENT,"\
-		"time INTEGER NOT NULL,"\
-		"goods_id INTEGER NOT NULL,"\
-		"salesperson_id INTEGER NOT NULL,"\
-		"price REAL NOT NULL,"\
-		"quantity INTEGER NOT NULL);";
-	rc = sqlite3_exec(db, sql.c_str(), NULL, 0, &zErrMsg);
-	if (rc != SQLITE_OK) {
-		fprintf(stderr, "SQL error: %s\n", zErrMsg);
-		sqlite3_free(zErrMsg);
-	}
-	else {
-		fprintf(stdout, "Table created successfully\n");
-	}
-
-	// 添加测试账户
-	/*
-	enum UserType {
-		Salesperson=0, Admin=1
-	};
-	*/
-	sql = "INSERT INTO User (id,user_type,username,password) "\
-		"VALUES (NULL,1,'admin','admin');";
-	rc = sqlite3_exec(db, sql.c_str(), NULL, 0, &zErrMsg);
-	if (rc != SQLITE_OK) {
-		fprintf(stderr, "SQL error: %s\n", zErrMsg);
-		sqlite3_free(zErrMsg);
-	}
-	else {
-		fprintf(stdout, "Test user create successfully\n");
-	}
-
-	// 添加测试商品
-	sql = "INSERT INTO Goods (id,goods_name,price,quantity) "\
-		"VALUES (NULL,'banana',1.0,200);";
-	rc = sqlite3_exec(db, sql.c_str(), NULL, 0, &zErrMsg);
-
-	// 添加测试订单
-	sql = "INSERT INTO Goods_order (id,time,salesperson_id,goods_id,price,quantity) "\
-		"VALUES (NULL,1620005391,1,1,1.0,100);";
-	rc = sqlite3_exec(db, sql.c_str(), NULL, 0, &zErrMsg);
-
-	sqlite3_close(db);
-}
-
-void SalesManagerSystem::refresh_global_map(void* user_manage, void* goods_manage)
-{
-	GLOBAL_goods_map.clear();
-	vector<Goods> goods_list;
-	((GoodsManageModule*)goods_manage)->db_list_goods(goods_list);
-	for (Goods& goods : goods_list) {
-		GLOBAL_goods_map.insert(pair<int, Goods>(goods.id, goods));
-	}
-
-	GLOBAL_user_map.clear();
-	vector<User> user_list;
-	((UserManageModule*)user_manage)->db_list_user(user_list);
-	for (User& user : user_list) {
-		GLOBAL_user_map.insert(pair<int, User>(user.id, user));
-	}
-
-}
-
-#define CMD_SYS_LOGIN 1
-#define CMD_SYS_EXIT 2
-LoginInfo SalesManagerSystem::require_login()
-{
-
-	while (1) {
-		printf("欢迎来到系统，请选择：\n");
-		printf("1.登录\n");
-		printf("2.退出\n");
-
-		LoginModule login = (db);
-
-		int cmd = get_num();
-		if (cmd == CMD_SYS_LOGIN)
-		{
-			bool flag_for_login_success = false;
-			LoginInfo info;
-			while (1) {
-				info = login.enter_module();
-				if (info.auth_state != AuthenticationState::LOGIN_SUCCESS) {
-					bool retry = ask_yes_or_no("登录失败，是否重试？");
-					if (retry) {
-						continue;
-					}
-					else {
-						break;
-					}
-				}
-				else {
-					flag_for_login_success = true;
-					break;
-				}
-			}
-			if (flag_for_login_success)
-				return info;
-		}
-		else if (cmd == CMD_SYS_EXIT) {
-			printf("正在退出系统...\n");
-			exit_sys();
-			return *(new LoginInfo);
-		}
-		else {
-			printf("找不到命令，请重新输入.\n");
-			continue;
-		}
-	}
-
+	//printf("测试全部通过\n");
 }

@@ -101,7 +101,7 @@
       <FunctionLevelLinking>true</FunctionLevelLinking>
       <IntrinsicFunctions>true</IntrinsicFunctions>
       <SDLCheck>true</SDLCheck>
-      <PreprocessorDefinitions>WIN32;NDEBUG;_CONSOLE;%(PreprocessorDefinitions)</PreprocessorDefinitions>
+      <PreprocessorDefinitions>WIN32;NDEBUG;_CONSOLE;%(PreprocessorDefinitions);_CRT_SECURE_NO_WARNINGS</PreprocessorDefinitions>
       <ConformanceMode>true</ConformanceMode>
     </ClCompile>
     <Link>
@@ -153,11 +153,21 @@
     <ClInclude Include="CommandModule.h" />
     <ClInclude Include="GoodsManageModule.h" />
     <ClInclude Include="LoginModule.h" />
+    <ClInclude Include="resource.h" />
+    <ClInclude Include="resource1.h" />
     <ClInclude Include="SaleGoodsModule.h" />
     <ClInclude Include="SalesManagerSystem.h" />
     <ClInclude Include="sqlite3.h" />
     <ClInclude Include="UserManageModule.h" />
     <ClInclude Include="Utils.h" />
+  </ItemGroup>
+  <ItemGroup>
+    <ResourceCompile Include="SalesManagerSystem.rc" />
+  </ItemGroup>
+  <ItemGroup>
+    <Image Include="..\bitbug_favicon.ico" />
+    <Image Include="..\icon.ico" />
+    <Image Include="..\icon1.ico" />
   </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
   <ImportGroup Label="ExtensionTargets">

@@ -15,7 +15,9 @@ LoginInfo LoginModule::enter_module()
 	else if (info.auth_state == AuthenticationState::WRONG_PASSWORD) {
 		printf("ÃÜÂë´íÎó£¡\n");
 	}
-
+	else if (info.auth_state == AuthenticationState::LOGIN_SUCCESS) {
+		printf("µÇÂ¼³É¹¦£¡\n");
+	}
 
 	return info;
 }

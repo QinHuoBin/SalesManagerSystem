@@ -11,7 +11,7 @@ SaleGoodsModule::SaleGoodsModule(LoginInfo* info, sqlite3* db, map<int, User>* _
 	goods_map = _goods_map;
 }
 
-void SaleGoodsModule::add_goods_to_list()
+void SaleGoodsModule::add_goods_to_cart()
 {
 	printf("请选择要添加的商品\n");
 
@@ -32,7 +32,7 @@ void SaleGoodsModule::add_goods_to_list()
 	Goods& goods = result->second;
 
 
-	printf("请输入你要添加的数量\n");
+	printf("请输入你要添加的数量:");
 	int quantity = get_num();
 	if (quantity > goods.quantity) {
 		printf("抱歉，没有那么多这种商品！\n");
@@ -41,51 +41,53 @@ void SaleGoodsModule::add_goods_to_list()
 
 	Order order;
 	order.goods_id = goods_id;
+	order.goods_name = goods.goods_name;
 	order.price = goods.price;
 	order.num = quantity;
 	order.salesperson_id = login_info->user.id;
+	order.salesperson_name = login_info->user.username;
 
-	int loc = find_order_in_list(order_list, goods_id);
+	int loc = find_order_in_list(shopping_cart, goods_id);
 	if (loc == -1) {
-		order_list.push_back(order);
+		shopping_cart.push_back(order);
 	}
 	else {
-		order_list[loc].num += quantity;
+		shopping_cart[loc].num += quantity;
 	}
 
 	printf("添加完毕\n");
 }
 
-void SaleGoodsModule::remove_goods_in_list()
+void SaleGoodsModule::remove_goods_in_cart()
 {
-	printf("这是你的购物清单：\n");
-	print_order_list(order_list);
+	printf("这是购物车中的商品：\n");
+	print_order_list(shopping_cart);
 	printf("请选择你要删除的序号：");
 	int order_id = get_num();
-	if (order_id >= order_list.size()) {
+	if (order_id >= shopping_cart.size()) {
 		printf("没有此序号！\n");
 		return;
 	}
 
-	auto del = order_list.begin();
-	order_list.erase(del + order_id);
+	auto del = shopping_cart.begin();
+	shopping_cart.erase(del + order_id);
 
 	printf("删除完毕\n");
 }
 
-void SaleGoodsModule::modify_goods_in_list()
+void SaleGoodsModule::modify_goods_in_cart()
 {
-	printf("这是你的购物清单：\n");
-	print_order_list(order_list);
+	printf("这是购物车中的商品：\n");
+	print_order_list(shopping_cart);
 
 	printf("请选择你要修改的序号：");
 	int order_id = get_num();
-	if (order_id >= order_list.size()) {
+	if (order_id >= shopping_cart.size()) {
 		printf("没有此序号！\n");
 		return;
 	}
 
-	Order& order = order_list[order_id];
+	Order& order = shopping_cart[order_id];
 	Goods& goods = (*goods_map)[order.goods_id];
 
 
@@ -95,13 +97,14 @@ void SaleGoodsModule::modify_goods_in_list()
 		printf("抱歉，没有那么多这种商品！\n");
 		return;
 	}
+	order.num = new_quantity;
 }
 
-void SaleGoodsModule::give_up_list()
+void SaleGoodsModule::give_up_cart()
 {
 	bool clear = ask_yes_or_no("真的要清除购物车吗？", false);
 	if (clear) {
-		order_list.clear();
+		shopping_cart.clear();
 		printf("已清空\n");
 	}
 	else {
@@ -109,14 +112,16 @@ void SaleGoodsModule::give_up_list()
 	}
 }
 
-void SaleGoodsModule::charge_by_list()
+void SaleGoodsModule::charge_by_cart()
 {
-	printf("这是你的购物清单：\n");
-	print_order_list(order_list);
+	printf("这是购物车中的商品：\n");
+	print_order_list(shopping_cart);
+
+
 
 	bool charge = ask_yes_or_no("是否结账？");
 	if (!charge) {
-		printf("退出\n");
+		printf("结账终止\n");
 		return;
 	}
 
@@ -124,7 +129,7 @@ void SaleGoodsModule::charge_by_list()
 	float money = get_float();
 
 	float should_pay = 0;
-	for (auto& order : order_list) {
+	for (auto& order : shopping_cart) {
 		should_pay += order.price * order.num;
 	}
 
@@ -133,33 +138,35 @@ void SaleGoodsModule::charge_by_list()
 		return;
 	}
 
-	for (Order& order : order_list) {
+	for (Order& order : shopping_cart) {
 		record_order(order);
 	}
 
 	printf("找零：%lf\n", double(money) - should_pay);
 	printf("欢迎下次光临！\n");
 
-	order_list.clear();
+	shopping_cart.clear();
 
 }
 
-void SaleGoodsModule::print_order_list(vector<Order>& order_list)
+void SaleGoodsModule::print_order_list(vector<Order>& shopping_cart)
 {
 	printf("序号\t商品名\t单价\t数量\t价格\n");
 	int i = 0;
+	int sum = 0;
 	float sum_money = 0;
-	for (auto& order : order_list) {
+	for (auto& order : shopping_cart) {
 		Goods& goods = goods_map->find(order.goods_id)->second;
+		sum += order.num;
 		sum_money += order.num * order.price;
 		printf("%d\t%s\t%f\t%d\t%f\n", i++, goods.goods_name.c_str(), order.price, order.num, double(order.num) * order.price);
 	}
-	printf("总计：%f\n", sum_money);
+	printf("总计：%d件商品，%f元\n", sum, sum_money);
 }
 
-int SaleGoodsModule::find_order_in_list(vector<Order>& order_list, int goods_id) {
-	for (int i = 0; i < order_list.size(); i++) {
-		Order& order = order_list[i];
+int SaleGoodsModule::find_order_in_list(vector<Order>& shopping_cart, int goods_id) {
+	for (int i = 0; i < shopping_cart.size(); i++) {
+		Order& order = shopping_cart[i];
 		if (order.goods_id == goods_id) {
 			return i;
 		}
@@ -211,15 +218,28 @@ void SaleGoodsModule::print_account()
 	printf("销售员排名：\n");
 	printf("排名\t名称\t总金额\n");
 	for (int i = 0; i < 4 && i < salesperson_rank.size(); i++) {
-		User& user = user_map->find(salesperson_rank[i].first)->second;
-		printf("%d. %s\t%f\n", i, user.username.c_str(), salesperson_rank[i].second);
+		// 找到该销售员在订单中对应的id
+		// 排在该位的销售员的id
+		int the_id = salesperson_rank[i].first;
+		// 遍历所有订单并判断订单中销售员id与对应id是否相等，若相等，则找到该销售员
+		for (int x = all_orders.size() - 1; x >= 0; x--) {
+			if (all_orders[x].salesperson_id == the_id) {
+				printf("%d. %s\t%f\n", i + 1, all_orders[x].salesperson_name.c_str(), salesperson_rank[i].second);
+				break;
+			}
+		}
 	}
 	printf("----------------------\n");
 	printf("商品销售排名：\n");
 	printf("排名\t商品名\t总金额\n");
 	for (int i = 0; i < 4 && i < goods_rank.size(); i++) {
-		Goods& goods = goods_map->find(goods_rank[i].first)->second;
-		printf("%d. %s\t%f\n", i, goods.goods_name.c_str(), goods_rank[i].second);
+		int the_id = goods_rank[i].first;
+		for (int x = all_orders.size() - 1; x >= 0; x--) {
+			if (all_orders[x].goods_id == the_id) {
+				printf("%d. %s\t%f\n", i + 1, all_orders[x].goods_name.c_str(), goods_rank[i].second);
+				break;
+			}
+		}
 	}
 }
 
@@ -228,7 +248,7 @@ void SaleGoodsModule::record_order(Order& order)
 	time_t time_now = time(0);
 	// 以下过程不能失败，否则系统将不一致
 	// todo: 1.增加quantity数量检测，若没有足够数量商品，则返回失败，要求重新购买（线程安全）
-	bool a = db_record_order(time_now, order.goods_id, order.salesperson_id, order.price, order.num);
+	bool a = db_record_order(time_now, order.goods_id, order.goods_name, order.salesperson_id, order.salesperson_name, order.price, order.num);
 	bool b = db_decrease_goods_quantity(order.goods_id, order.num);
 	goods_map->find(order.goods_id)->second.quantity -= order.num;
 
@@ -238,19 +258,21 @@ void SaleGoodsModule::record_order(Order& order)
 }
 
 
-int SaleGoodsModule::db_record_order(time_t time_now, int goods_id, int salesperson_id, float price, int quantity)
+int SaleGoodsModule::db_record_order(time_t time_now, int goods_id, string goods_name, int salesperson_id, string salesperson_name, float price, int quantity)
 {
-	string sql = "INSERT INTO Goods_order (id,time,goods_id,salesperson_id,price,quantity) "\
-		"VALUES (NULL,?,?,?,?,?);";
+	string sql = "INSERT INTO Goods_order (id,time,goods_id,goods_name,salesperson_id,salesperson_name,price,quantity) "\
+		"VALUES (NULL,?,?,?,?,?,?,?);";
 
 	sqlite3_stmt* stmt;
 	int a = sqlite3_prepare_v2(db, sql.c_str(), sql.length(), &stmt, nullptr);
 
 	a = sqlite3_bind_int(stmt, 1, time_now);
 	a = sqlite3_bind_int(stmt, 2, goods_id);
-	a = sqlite3_bind_int(stmt, 3, salesperson_id);
-	a = sqlite3_bind_double(stmt, 4, price);
-	a = sqlite3_bind_int(stmt, 5, quantity);
+	a = sqlite3_bind_text(stmt, 3, goods_name.c_str(), goods_name.length(), SQLITE_STATIC);
+	a = sqlite3_bind_int(stmt, 4, salesperson_id);
+	a = sqlite3_bind_text(stmt, 5, salesperson_name.c_str(), salesperson_name.length(), SQLITE_STATIC);
+	a = sqlite3_bind_double(stmt, 6, price);
+	a = sqlite3_bind_int(stmt, 7, quantity);
 
 	int rc = sqlite3_step(stmt);
 	sqlite3_finalize(stmt);
@@ -289,9 +311,9 @@ int SaleGoodsModule::db_decrease_goods_quantity(int goods_id, int num)
 	}
 }
 
-int SaleGoodsModule::db_enquire_all_orders(vector<Order>& order_list)
+int SaleGoodsModule::db_enquire_all_orders(vector<Order>& shopping_cart)
 {
-	string sql = "SELECT id,time,goods_id,salesperson_id,price,quantity FROM Goods_order;";
+	string sql = "SELECT id,time,goods_id,goods_name,salesperson_id,salesperson_name,price,quantity FROM Goods_order;";
 
 	sqlite3_stmt* stmt;
 	sqlite3_prepare_v2(db, sql.c_str(), sql.length(), &stmt, nullptr);
@@ -302,10 +324,12 @@ int SaleGoodsModule::db_enquire_all_orders(vector<Order>& order_list)
 			order.id = sqlite3_column_int(stmt, 0);
 			order.time = sqlite3_column_int(stmt, 1);
 			order.goods_id = sqlite3_column_int(stmt, 2);
-			order.salesperson_id = sqlite3_column_int(stmt, 3);
-			order.price = sqlite3_column_double(stmt, 4);
-			order.num = sqlite3_column_int(stmt, 5);
-			order_list.push_back(order);
+			order.goods_name = (char*)sqlite3_column_text(stmt, 3);
+			order.salesperson_id = sqlite3_column_int(stmt, 4);
+			order.salesperson_name = (char*)sqlite3_column_text(stmt, 5);
+			order.price = sqlite3_column_double(stmt, 6);
+			order.num = sqlite3_column_int(stmt, 7);
+			shopping_cart.push_back(order);
 		}
 		else if (rc == SQLITE_DONE) {
 			sqlite3_finalize(stmt);
@@ -333,30 +357,29 @@ int SaleGoodsModule::db_enquire_all_orders(vector<Order>& order_list)
 int SaleGoodsModule::enter_module()
 {
 	while (1) {
-		printf("请选择功能\n");
-		printf("%d. 增添商品到购物清单\n", ADD_GOODS_TO_LIST);
-		printf("%d. 删除购物清单的一个商品\n", REMOVE_GOODS_IN_LIST);
+		printf("这是商品销售模块，请选择功能\n");
+		printf("%d. 增添商品到购物车\n", ADD_GOODS_TO_LIST);
+		printf("%d. 删除购物车的一个商品\n", REMOVE_GOODS_IN_LIST);
 		printf("%d. 修改商品数量\n", MODIFY_GOODS_IN_LIST);
-		printf("%d. 清空购物清单\n", GIVE_UP_LIST);
+		printf("%d. 清空购物车\n", GIVE_UP_LIST);
 		printf("%d. 结账\n", CHARGE_BY_LIST);
 		printf("%d. 打印销售报表（特权）\n", PRINT_ACCOUNT);
 		printf("%d. 退出本模块\n", SGM_EXIT);
 
 		int cmd = get_num();
+		printf("\n");
 		switch (cmd) {
-		case ADD_GOODS_TO_LIST:add_goods_to_list(); break;
-		case REMOVE_GOODS_IN_LIST:remove_goods_in_list(); break;
-		case MODIFY_GOODS_IN_LIST:modify_goods_in_list(); break;
-		case GIVE_UP_LIST:give_up_list(); break;
-		case CHARGE_BY_LIST:charge_by_list(); break;
+		case ADD_GOODS_TO_LIST:add_goods_to_cart(); break;
+		case REMOVE_GOODS_IN_LIST:remove_goods_in_cart(); break;
+		case MODIFY_GOODS_IN_LIST:modify_goods_in_cart(); break;
+		case GIVE_UP_LIST:give_up_cart(); break;
+		case CHARGE_BY_LIST:charge_by_cart(); break;
 		case PRINT_ACCOUNT:print_account(); break;
 		case SGM_EXIT:return -1; break;
 		default:
 			printf("命令输入错误，请重试！\n");
-			continue;
 		}
+		printf("\n");
 	}
 	return 0;
 }
-
-

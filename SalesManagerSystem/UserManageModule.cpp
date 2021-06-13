@@ -45,6 +45,7 @@ void UserManageModule::add_user()
 
 	if (db_find_user(username)) {
 		printf("用户已存在\n");
+		return;
 	}
 
 	string password = ask_question_get_str("请输入密码：");
@@ -88,7 +89,7 @@ void UserManageModule::remove_user()
 	printf("删除用户\n");
 
 	string username = ask_question_get_str("用户名：");
-	int result =db_remove_user(username);
+	int result = db_remove_user(username);
 	if (result) {
 		printf("删除用户成功\n");
 	}
@@ -180,11 +181,13 @@ void UserManageModule::list_user()
 		return;
 	printf("正在列出账户：\n");
 	vector<User> user_list;
-	int result=db_list_user(user_list);
+	int result = db_list_user(user_list);
 	if (!result) {
 		printf("列出用户失败！");
 		//return;
 	}
+
+	printf("id\t用户名\t密码\t用户类型\n");
 	for (User& user : user_list) {
 		printf("%d\t%s\t%s\t%s\n", user.id, user.username.c_str(), user.password.c_str(), get_usertype_str(user.user_type).c_str());
 	}
@@ -328,7 +331,7 @@ int UserManageModule::db_list_user(vector<User>& user_list)
 			User user;
 			user.id = sqlite3_column_int(stmt, 0);
 			user.username = string((char*)sqlite3_column_blob(stmt, 1));
-			user.password = string((char*)sqlite3_column_blob(stmt,2));
+			user.password = string((char*)sqlite3_column_blob(stmt, 2));
 			user.user_type = UserType(sqlite3_column_int(stmt, 3));
 			user_list.push_back(user);
 		}
@@ -356,7 +359,7 @@ int UserManageModule::db_list_user(vector<User>& user_list)
 int UserManageModule::enter_module()
 {
 	while (1) {
-		printf("请选择功能\n");
+		printf("这是用户管理模块，请选择功能\n");
 		printf("%d. 修改我的密码\n", MODIFY_MY_PASSWORD);
 		printf("%d. 添加用户（特权）\n", ADD_USER);
 		printf("%d. 删除用户（特权）\n", REMOVE_USER);
@@ -365,6 +368,8 @@ int UserManageModule::enter_module()
 		printf("%d. 退出本模块\n", UMM_EXIT);
 
 		int cmd = get_num();
+		printf("\n");
+
 		switch (cmd) {
 		case MODIFY_MY_PASSWORD:modify_my_password(); break;
 		case ADD_USER:add_user(); break;
@@ -376,6 +381,7 @@ int UserManageModule::enter_module()
 			printf("命令输入错误，请重试！\n");
 			continue;
 		}
+		printf("\n");
 	}
 	return 0;
 }
