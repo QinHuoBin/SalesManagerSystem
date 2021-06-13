@@ -185,7 +185,7 @@ void SalesManagerSystem::prepare_database()
 		sqlite3_free(zErrMsg);
 	}
 	else {
-		fprintf(stdout, "Table created successfully\n");
+		//fprintf(stdout, "Table created successfully\n");
 	}
 
 	//struct Goods {
@@ -216,7 +216,7 @@ void SalesManagerSystem::prepare_database()
 		sqlite3_free(zErrMsg);
 	}
 	else {
-		fprintf(stdout, "Table created successfully\n");
+		//fprintf(stdout, "Table created successfully\n");
 	}
 
 	// 添加测试账户
@@ -233,7 +233,7 @@ void SalesManagerSystem::prepare_database()
 		sqlite3_free(zErrMsg);
 	}
 	else {
-		fprintf(stdout, "Test user create successfully\n");
+		//fprintf(stdout, "Test user create successfully\n");
 	}
 
 	// 添加测试商品
